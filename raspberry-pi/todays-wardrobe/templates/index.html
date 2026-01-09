@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Distal</title>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F4F7F6;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #2D3436;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        /* Floating Header */
+        .header-brand {
+            margin-bottom: 40px;
+        }
+
+        .header-brand h1 {
+            font-size: 2.5rem;
+            background: -webkit-linear-gradient(45deg, #6C5CE7, #a29bfe);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 0;
+        }
+
+        .action-area {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+            margin-bottom: 30px;
+        }
+
+        button {
+            background: linear-gradient(135deg, #6C5CE7 0%, #a29bfe 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(108, 92, 231, 0.3);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(108, 92, 231, 0.4);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        #progress-container {
+            margin-top: 25px;
+            display: none;
+        }
+
+        #progress-bar-bg {
+            width: 100%;
+            height: 10px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        #progress-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: #6C5CE7;
+            transition: width 0.4s ease;
+        }
+
+        #status-text {
+            color: #666;
+            font-size: 0.9rem;
+            font-style: italic;
+        }
+
+        #results-area {
+            display: none;
+            /* Hidden initially */
+            text-align: left;
+        }
+
+        .event-group {
+            margin-bottom: 40px;
+        }
+
+        .outfit-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s;
+        }
+
+        .outfit-card img {
+            max-width: 100%;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+
+        <div class="header-brand">
+            <h1>✨ Project Distal</h1>
+            <p style="color: #636e72;">Your AI-Powered Daily Stylist</p>
+        </div>
+
+        <!-- START SECTION -->
+        <div id="start-section" style="text-align: center; margin: 4rem 0;">
+            <p style="font-size: 1.2rem; margin-bottom: 2rem;">Ready to look your best today?</p>
+            <button id="suggest-btn" class="button" onclick="startProcess()">Suggest Wardrobe for the Day</button>
+        </div>
+
+        <!-- PROGRESS SECTION (Hidden initially) -->
+        <div id="progress-section" style="display: none; text-align: center; margin: 3rem 0;">
+            <div
+                style="background-color: #e0e0e0; border-radius: 99px; height: 10px; width: 100%; max-width: 400px; margin: 0 auto; overflow: hidden;">
+                <div id="progress-bar"
+                    style="background-color: #6C5CE7; height: 100%; width: 0%; transition: width 0.5s;"></div>
+            </div>
+            <p id="status-text" style="margin-top: 1.5rem; font-weight: 500; font-size: 1.1rem; color: #555;">
+                Connecting...</p>
+        </div>
+
+        <!-- RESULTS SECTION (Hidden initially) -->
+        <div id="results-section" style="display: none;">
+
+            <!-- Events List -->
+            <div class="event-list" id="events-container">
+                <h2>Today's Agenda</h2>
+                <ul id="events-ul"></ul>
+            </div>
+
+            <div class="recommendation-section">
+                <h2>Outfit Recommendation</h2>
+
+                <div id="recommendation-content">
+                    <!-- Recommendation will be injected here -->
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 3rem;">
+                <button class="button" onclick="location.reload()" style="background-color: #eee; color: #333;">Start
+                    Over</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        function startProcess() {
+            document.getElementById('start-section').style.display = 'none';
+            document.getElementById('progress-section').style.display = 'block';
+
+            const statusText = document.getElementById('status-text');
+            const progressBar = document.getElementById('progress-bar');
+
+            const eventSource = new EventSource('/stream_wardrobe_generation');
+
+            eventSource.onmessage = function (e) {
+                const data = JSON.parse(e.data);
+
+                if (data.error) {
+                    statusText.innerText = "Error: " + data.error;
+                    statusText.style.color = "red";
+                    eventSource.close();
+                    return;
+                }
+
+                if (data.status) {
+                    statusText.innerText = data.status;
+                }
+
+                if (data.progress) {
+                    progressBar.style.width = data.progress + "%";
+                }
+
+                if (data.complete) {
+                    eventSource.close();
+                    showResults(data);
+                }
+            };
+
+            eventSource.onerror = function () {
+                statusText.innerText = "Connection lost. Please try again.";
+                eventSource.close();
+            };
+        }
+
+        function showResults(data) {
+            // Hide progress
+            document.getElementById('progress-section').style.display = 'none';
+            document.getElementById('results-section').style.display = 'block';
+
+            // Populate Events
+            const eventsUl = document.getElementById('events-ul');
+            eventsUl.innerHTML = "";
+            if (data.events && data.events.length > 0) {
+                data.events.forEach(event => {
+                    const li = document.createElement('li');
+                    li.className = 'event-item';
+                    li.innerHTML = `
+                        <div class="event-time">${event.start}</div>
+                        <div class="event-details">
+                            <div class="event-title">${event.summary}</div>
+                            ${event.location ? `<div class="event-location">📍 ${event.location}</div>` : ''}
+                        </div>
+                    `;
+                    eventsUl.appendChild(li);
+                });
+            } else {
+                eventsUl.innerHTML = "<p>No specific events found for today.</p>";
+            }
+
+            // Populate Recommendations (Outfits)
+            const recContent = document.getElementById('recommendation-content');
+            recContent.innerHTML = ""; // Clear previous
+
+            if (data.outfits && data.outfits.length > 0) {
+                data.outfits.forEach(outfit => {
+                    const card = document.createElement('div');
+                    card.className = "outfit-card";
+                    card.style.border = "1px solid #eee";
+                    card.style.borderRadius = "12px";
+                    card.style.padding = "20px";
+                    card.style.marginBottom = "30px";
+                    card.style.background = "#fff";
+                    card.style.boxShadow = "0 2px 8px rgba(0,0,0,0.05)";
+
+                    // Build Items Grid
+                    let itemsHtml = '<div style="display: flex; gap: 15px; overflow-x: auto; padding-bottom: 10px;">';
+
+                    if (outfit.items && outfit.items.length > 0) {
+                        outfit.items.forEach(item => {
+                            let imgTag = item.image_filename ?
+                                `<img src="/static/${item.image_filename}" style="width:100%; height:150px; object-fit:cover; border-radius:8px; margin-bottom:8px;">`
+                                : `<div style="width:100%; height:150px; background:#ddd; display:flex; align-items:center; justify-content:center; border-radius:8px; margin-bottom:8px;">No Image</div>`;
+
+                            itemsHtml += `
+                                <div style="min-width: 150px; max-width: 180px; background: #fff; border: 1px solid #eee; border-radius: 8px; padding: 10px;">
+                                    ${imgTag}
+                                    <div style="font-size: 0.85rem;">
+                                        ${item.category ? `<div>📁 <b>${item.category}</b></div>` : ''}
+                                        ${item.color ? `<div>🎨 ${item.color}</div>` : ''}
+                                        ${item.material ? `<div>🧶 ${item.material}</div>` : ''}
+                                    </div>
+                                </div>
+                            `;
+                        });
+                    } else {
+                        itemsHtml += `<div style="padding:10px;">No specific items returned.</div>`;
+                    }
+                    itemsHtml += '</div>';
+
+                    card.innerHTML = `
+                        <h3 style="margin-top:0; color:#6C5CE7;">${outfit.events_involved}</h3>
+                        <p>${outfit.recommendation}</p>
+                        <hr style="border:0; border-top:1px solid #eee; margin: 15px 0;">
+                        ${itemsHtml}
+                    `;
+                    recContent.appendChild(card);
+                });
+            } else {
+                recContent.innerHTML = "<p>No recommendations generated.</p>";
+            }
+        }
+    </script>
+</body>
+
+</html>
