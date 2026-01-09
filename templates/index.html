@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Wardrobe AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --google-blue: #1a73e8;
+            --google-red: #ea4335;
+            --google-yellow: #fbbc04;
+            --google-green: #34a853;
+            --bg-color: #f8f9fa;
+            --text-color: #202124;
+            --card-border: #dadce0;
+        }
+        body {
+            font-family: 'Google Sans', Roboto, Arial, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 40px 20px;
+            color: var(--text-color);
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            margin-bottom: 40px;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 400;
+            color: var(--text-color);
+            margin: 0;
+        }
+        
+        /* --- Agent Sections --- */
+        .agents-container {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+        .agent-card {
+            background: white;
+            padding: 24px;
+            border-radius: 8px;
+            border: 1px solid var(--card-border);
+            flex: 1 1 400px;
+            display: flex;
+            flex-direction: column;
+        }
+        .agent-card h2 {
+            margin-top: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.25rem;
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-top: auto; /* Pushes to bottom */
+            padding-top: 20px;
+        }
+        input[type="text"], input[type="file"] {
+            flex: 1;
+            padding: 10px 12px;
+            border: 1px solid var(--card-border);
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 14px;
+        }
+        button {
+            background-color: var(--google-blue);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            font-family: inherit;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: #155dbd;
+        }
+        button.loading {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        /* --- Agent Results Area --- */
+        .agent-results-container {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--card-border);
+            display: none; /* Hidden by default */
+        }
+        .agent-explanation {
+            background-color: #e8f0fe; /* Light blue tint */
+            padding: 16px;
+            border-radius: 8px;
+            color: var(--google-blue);
+            font-weight: 500;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        /* --- Grids & Cards --- */
+        .section-title {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            margin-top: 40px;
+            font-weight: 400;
+        }
+        .inventory-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 20px;
+        }
+        /* Shared Item Card Style */
+        .item-card {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--card-border);
+            transition: box-shadow 0.2s;
+        }
+        .item-card:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .item-img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-bottom: 1px solid var(--card-border);
+        }
+        .item-details {
+            padding: 12px;
+        }
+        .item-details h3 {
+            margin: 0 0 8px 0;
+            font-size: 1rem;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+            margin-right: 4px;
+            background-color: #f1f3f4;
+            color: #5f6368;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Wardrobe <span style="color:var(--google-blue)">AI</span></h1>
+        </div>
+
+        <div class="agents-container">
+            <div class="agent-card">
+                <h2><span style="color:var(--google-red)">✨</span> Stylist Agent</h2>
+                <p>Describe context (weather, occasion) to get a complete outfit suggestion.</p>
+                <div class="input-group">
+                    <input type="text" id="agent-context" placeholder="e.g., Dinner date, chilly weather...">
+                    <button id="stylist-btn" onclick="askStylist()">Ask Gemini</button>
+                </div>
+                
+                <div id="stylist-results" class="agent-results-container">
+                    <div id="stylist-explanation" class="agent-explanation"></div>
+                    <div id="stylist-grid" class="inventory-grid"></div>
+                </div>
+            </div>
+
+            <div class="agent-card">
+                <h2><span style="color:var(--google-yellow)">📷</span> Visual Matcher</h2>
+                <p>Upload an item (e.g., shoes) to find complementary items in your closet.</p>
+                <div class="input-group">
+                    <input type="file" id="visual-query-input" accept="image/*">
+                    <button id="matcher-btn" onclick="matchVisual()">Find Matches</button>
+                </div>
+
+                <div id="matcher-results" class="agent-results-container">
+                    <div id="matcher-grid" class="inventory-grid"></div>
+                </div>
+            </div>
+        </div>
+
+
+        <h2 class="section-title">Full Inventory</h2>
+        <div class="inventory-grid">
+            {% for item in items %}
+            <div class="item-card">
+                <img src="data:image/jpeg;base64,{{ item[1] }}" class="item-img" loading="lazy">
+                <div class="item-details">
+                    <h3>{{ item[2] }}</h3> 
+                    <div>
+                        <span class="badge">{{ item[3] }}</span>
+                        <span class="badge">{{ item[4] }}</span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script>
+        // Shared function to generate consistent HTML for item cards
+        function createItemCardHtml(item) {
+             // Handle slightly different data structures if necessary
+             const categoryDisplay = item.color ? `${item.color} ${item.category}` : item.category;
+             return `
+                <div class="item-card animate-pop">
+                    <img src="data:image/jpeg;base64,${item.image_base64}" class="item-img">
+                    <div class="item-details">
+                        <h3>${categoryDisplay}</h3>
+                         <span class="badge">${item.material}</span>
+                    </div>
+                </div>`;
+        }
+
+        // --- Stylist Agent Logic ---
+        async function askStylist() {
+            const contextInput = document.getElementById('agent-context');
+            const context = contextInput.value;
+            if (!context) return;
+
+            const btn = document.getElementById('stylist-btn');
+            const resultsContainer = document.getElementById('stylist-results');
+            const explanationDiv = document.getElementById('stylist-explanation');
+            const gridDiv = document.getElementById('stylist-grid');
+            
+            // UI Loading State
+            btn.innerText = "Thinking...";
+            btn.classList.add('loading');
+            resultsContainer.style.display = 'block';
+            explanationDiv.innerText = "Gemini is reviewing your wardrobe...";
+            gridDiv.innerHTML = "";
+            
+            try {
+                const res = await fetch('/api/agent/stylist', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({context: context})
+                });
+                const data = await res.json();
+
+                // Reset UI State
+                btn.innerText = "Ask Gemini";
+                btn.classList.remove('loading');
+
+                // Populate Results
+                explanationDiv.innerText = data.explanation;
+                if (data.items && data.items.length > 0) {
+                    gridDiv.innerHTML = data.items.map(createItemCardHtml).join('');
+                } else {
+                    gridDiv.innerHTML = "<p>No specific items recommended.</p>";
+                }
+
+            } catch (e) {
+                btn.innerText = "Ask Gemini";
+                btn.classList.remove('loading');
+                explanationDiv.innerText = "Error contacting Stylist Agent.";
+                console.error(e);
+            }
+        }
+
+        // --- Visual Matcher Logic ---
+        async function matchVisual() {
+            const fileInput = document.getElementById('visual-query-input');
+            const btn = document.getElementById('matcher-btn');
+            const resultsContainer = document.getElementById('matcher-results');
+            const gridDiv = document.getElementById('matcher-grid');
+            
+            if (fileInput.files.length === 0) {
+                alert("Please select an image first.");
+                return;
+            }
+            
+            // UI Loading State
+            btn.innerText = "Matching...";
+            btn.classList.add('loading');
+            resultsContainer.style.display = 'block';
+            gridDiv.innerHTML = "<p>Gemini is looking for complementary items...</p>";
+            
+            const formData = new FormData();
+            formData.append('image', fileInput.files[0]);
+            
+            try {
+                const res = await fetch('/api/agent/visual-match', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                
+                btn.innerText = "Find Matches";
+                btn.classList.remove('loading');
+
+                if (data.matches && data.matches.length > 0) {
+                    // Use the shared HTML generator
+                    gridDiv.innerHTML = data.matches.map(createItemCardHtml).join('');
+                } else {
+                    gridDiv.innerHTML = "<p>No good visual matches found.</p>";
+                    if(data.reasoning) console.log(data.reasoning);
+                }
+                
+            } catch (e) {
+                btn.innerText = "Find Matches";
+                btn.classList.remove('loading');
+                gridDiv.innerHTML = "Error running visual matcher.";
+                console.error(e);
+            }
+        }
+    </script>
+</body>
+</html>
